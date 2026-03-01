@@ -79,30 +79,6 @@ async function bootstrap() {
     }
   }, 60_000);
 
-  // 6) Expiração de calls (TTL)
-  setInterval(async () => {
-    const now = Date.now();
-
-    for (const [ownerId, info] of client.tempCalls.entries()) {
-      if (info.expiresAt && info.expiresAt <= now) {
-        try {
-          const guild = client.guilds.cache.get(info.guildId);
-          if (!guild) {
-            client.tempCalls.delete(ownerId);
-            continue;
-          }
-
-          const ch = await guild.channels.fetch(info.channelId).catch(() => null);
-          if (ch) await ch.delete("Call temporária expirada");
-        } catch (e) {
-          console.error("Erro ao expirar call:", e);
-        }
-
-        client.tempCalls.delete(ownerId);
-      }
-    }
-  }, 15_000);
-
   // 7) Finaliza sorteios automaticamente
   setInterval(async () => {
     try {
