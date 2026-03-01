@@ -2,24 +2,8 @@ const {
   SlashCommandBuilder,
   ChannelType,
   PermissionsBitField,
-  PermissionFlagsBits,
 } = require("discord.js");
 
-// Nomes fixos (ordem fixa, reutiliza o primeiro livre)
-const TEMP_CALL_NAMES = [
-  "Instância",
-  "Interseção",
-  "Confluência",
-  "Ressonância",
-  "Fenda",
-  "Paralelo",
-  "Convergente",
-  "Eclipse",
-  "Nexo",
-  "Interlúdio",
-];
-
-// Parse de string com menções/IDs: " @user1 @user2 123 456 "
 function parseUserIds(raw) {
   if (!raw) return [];
   const ids = new Set();
@@ -36,26 +20,7 @@ function parseUserIds(raw) {
   return [...ids];
 }
 
-function isTempName(name) {
-  return TEMP_CALL_NAMES.includes(name);
-}
-
-function pickNextAvailableName(guild, categoryId) {
-  const used = new Set(
-    guild.channels.cache
-      .filter(
-        (ch) =>
-          ch.type === ChannelType.GuildVoice &&
-          ch.parentId === categoryId &&
-          isTempName(ch.name)
-      )
-      .map((ch) => ch.name)
-  );
-
-  return TEMP_CALL_NAMES.find((n) => !used.has(n)) || null;
-}
-
-async function fetchExistingTempChannel(interaction, client, config) {
+async function fetchExistingTempChannel(interaction, client) {
   const info = client.tempCalls.get(interaction.user.id);
   if (!info) return null;
 
@@ -70,13 +35,12 @@ async function fetchExistingTempChannel(interaction, client, config) {
   return ch;
 }
 
-async function setConnectPermission(channel, target, allow) {
+async function setConnectPermission(channel, targetIdOrObj, allow) {
   // allow=true -> Connect true
   // allow=false -> Connect false
-  const overwrite = {
-    Connect: allow,
-  };
-  await channel.permissionOverwrites.edit(target, overwrite).catch(() => {});
+  await channel.permissionOverwrites
+    .edit(targetIdOrObj, { Connect: allow })
+    .catch(() => {});
 }
 
 module.exports = {
@@ -138,14 +102,14 @@ module.exports = {
       sub
         .setName("fechar")
         .setDescription("Fecha (deleta) sua call temporária imediatamente")
-    )
-    // deixa claro que precisa de permissão para criar canal/gerenciar canal
-    .setDefaultMemberPermissions(PermissionFlagsBits.Connect),
+    ),
 
   async execute(interaction, client, config) {
     if (!interaction.guild) {
       return interaction.reply({ content: "Use isso dentro de um servidor.", ephemeral: true });
     }
+
+    // Guild lock (se você usa isso)
     if (interaction.guildId !== config.guildId) {
       return interaction.reply({ content: "Este bot funciona apenas no servidor configurado.", ephemeral: true });
     }
@@ -160,26 +124,22 @@ module.exports = {
       });
     }
 
-    // checa permissões do bot
+    // Permissões do BOT
     const me = interaction.guild.members.me;
     if (!me) {
       return interaction.reply({ content: "Não consegui obter minhas permissões.", ephemeral: true });
     }
-    const need = [
-      PermissionsBitField.Flags.ViewChannel,
-      PermissionsBitField.Flags.ManageChannels,
-    ];
-    for (const flag of need) {
-      if (!me.permissions.has(flag)) {
-        return interaction.reply({
-          content: "Eu preciso de **Ver Canais** e **Gerenciar Canais** para isso.",
-          ephemeral: true,
-        });
-      }
+
+    if (!me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+      return interaction.reply({
+        content: "Eu preciso de **Gerenciar Canais** para criar/deletar call.",
+        ephemeral: true,
+      });
     }
 
     if (sub === "criar") {
-      const existing = await fetchExistingTempChannel(interaction, client, config);
+      // 1 dono -> 1 call
+      const existing = await fetchExistingTempChannel(interaction, client);
       if (existing) {
         return interaction.reply({
           content: `Você já tem uma call ativa: **${existing.name}**.`,
@@ -187,7 +147,10 @@ module.exports = {
         });
       }
 
-      const name = pickNextAvailableName(interaction.guild, categoryId);
+      // pega o menor nome disponível na categoria
+      const existingTemps = client.tempCalls.listTempChannelsInCategory(interaction.guild, categoryId);
+      const name = client.tempCalls.pickNextAvailableName(existingTemps);
+
       if (!name) {
         return interaction.reply({
           content: "Todas as instâncias estão ocupadas no momento (limite de 10).",
@@ -196,15 +159,14 @@ module.exports = {
       }
 
       const usersRaw = interaction.options.getString("usuarios") || "";
-      const allowRole = interaction.options.getRole("cargo");
+      const role = interaction.options.getRole("cargo");
+      const userIds = parseUserIds(usersRaw)
+        .filter((id) => id !== interaction.user.id)
+        .slice(0, 25);
 
-      const userIds = parseUserIds(usersRaw).filter((id) => id !== interaction.user.id);
-
-      // Permission overwrites:
-      // - everyone: pode ver, NÃO pode conectar
-      // - owner: pode conectar
-      // - convidados: podem conectar
-      // - cargo (opcional): pode conectar
+      // everyone: vê, mas não conecta
+      // owner: vê e conecta
+      // convidados/role: vê e conecta
       const overwrites = [
         {
           id: interaction.guild.roles.everyone.id,
@@ -217,16 +179,16 @@ module.exports = {
         },
       ];
 
-      for (const uid of userIds.slice(0, 25)) {
+      for (const uid of userIds) {
         overwrites.push({
           id: uid,
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect],
         });
       }
 
-      if (allowRole) {
+      if (role) {
         overwrites.push({
-          id: allowRole.id,
+          id: role.id,
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect],
         });
       }
@@ -239,12 +201,17 @@ module.exports = {
         reason: "Call temporária criada (Magister)",
       });
 
-      // guarda apenas pra “um dono -> um canal”
-      client.tempCalls.set(interaction.user.id, { guildId: interaction.guildId, channelId: ch.id });
+      client.tempCalls.set(interaction.user.id, {
+        guildId: interaction.guildId,
+        channelId: ch.id,
+      });
 
-      const invitedCount = Math.min(userIds.length, 25);
-      const roleTxt = allowRole ? ` + cargo **${allowRole.name}**` : "";
-      const invitedTxt = invitedCount ? ` (usuários permitidos: ${invitedCount}${roleTxt})` : (roleTxt ? ` (${roleTxt.trim()})` : "");
+      const invitedCount = userIds.length;
+      const roleTxt = role ? ` + cargo **${role.name}**` : "";
+      const invitedTxt =
+        invitedCount || role
+          ? ` (permitidos: ${invitedCount}${roleTxt})`
+          : "";
 
       return interaction.reply({
         content: `◈ **${name}** foi aberta${invitedTxt}.`,
@@ -252,8 +219,8 @@ module.exports = {
       });
     }
 
-    // daqui pra baixo: precisa ter call existente
-    const channel = await fetchExistingTempChannel(interaction, client, config);
+    // A partir daqui: precisa ter call existente do dono
+    const channel = await fetchExistingTempChannel(interaction, client);
     if (!channel) {
       return interaction.reply({
         content: "Você não tem uma call temporária ativa. Use `/call criar`.",
@@ -261,10 +228,14 @@ module.exports = {
       });
     }
 
-    // segurança: só mexe se for voice e estiver na categoria correta e for “nome de instância”
-    if (channel.type !== ChannelType.GuildVoice || channel.parentId !== categoryId || !isTempName(channel.name)) {
+    // Segurança extra: garante que é uma temp válida (nome + categoria + tipo)
+    if (
+      channel.type !== ChannelType.GuildVoice ||
+      channel.parentId !== categoryId ||
+      !client.tempCalls.isTempChannel(channel)
+    ) {
       return interaction.reply({
-        content: "Sua call registrada não parece ser uma instância válida. (Talvez foi movida/renomeada?)",
+        content: "Sua call registrada não parece ser uma instância válida (foi movida/renomeada?).",
         ephemeral: true,
       });
     }
@@ -278,10 +249,11 @@ module.exports = {
       return interaction.reply({ content: "🗝️ Instância encerrada.", ephemeral: true });
     }
 
-    // convidar / remover
     const usersRaw = interaction.options.getString("usuarios") || "";
     const role = interaction.options.getRole("cargo");
-    const userIds = parseUserIds(usersRaw).filter((id) => id !== interaction.user.id);
+    const userIds = parseUserIds(usersRaw)
+      .filter((id) => id !== interaction.user.id)
+      .slice(0, 25);
 
     if (!userIds.length && !role) {
       return interaction.reply({
@@ -291,44 +263,37 @@ module.exports = {
     }
 
     if (sub === "convidar") {
-      // role
-      if (role) {
-        await setConnectPermission(channel, role, true);
-      }
+      if (role) await setConnectPermission(channel, role.id, true);
 
-      // users
       let ok = 0;
-      for (const uid of userIds.slice(0, 25)) {
+      for (const uid of userIds) {
         const member = await interaction.guild.members.fetch(uid).catch(() => null);
         if (!member || member.user.bot) continue;
-        await setConnectPermission(channel, member, true);
+        await setConnectPermission(channel, member.id, true);
         ok++;
       }
 
-      const roleTxt = role ? `cargo **${role.name}**` : null;
-      const userTxt = ok ? `${ok} usuário(s)` : null;
-      const parts = [userTxt, roleTxt].filter(Boolean).join(" e ");
+      const parts = [];
+      if (ok) parts.push(`${ok} usuário(s)`);
+      if (role) parts.push(`cargo **${role.name}**`);
 
       return interaction.reply({
-        content: `✅ Permissão de conectar atualizada: ${parts || "ok"}.`,
+        content: `✅ Permissão de conectar atualizada: ${parts.join(" e ") || "ok"}.`,
         ephemeral: true,
       });
     }
 
     if (sub === "remover") {
-      if (role) {
-        await setConnectPermission(channel, role, false);
-      }
+      if (role) await setConnectPermission(channel, role.id, false);
 
       let ok = 0;
-      for (const uid of userIds.slice(0, 25)) {
+      for (const uid of userIds) {
         const member = await interaction.guild.members.fetch(uid).catch(() => null);
         if (!member || member.user.bot) continue;
 
-        // ao remover, a pessoa ainda vai VER, mas não conecta
-        await setConnectPermission(channel, member, false);
+        await setConnectPermission(channel, member.id, false);
 
-        // se estiver dentro, expulsa (opcional e útil)
+        // Se estiver dentro, expulsa (útil)
         if (member.voice?.channelId === channel.id) {
           await member.voice.setChannel(null).catch(() => {});
         }
@@ -336,12 +301,12 @@ module.exports = {
         ok++;
       }
 
-      const roleTxt = role ? `cargo **${role.name}**` : null;
-      const userTxt = ok ? `${ok} usuário(s)` : null;
-      const parts = [userTxt, roleTxt].filter(Boolean).join(" e ");
+      const parts = [];
+      if (ok) parts.push(`${ok} usuário(s)`);
+      if (role) parts.push(`cargo **${role.name}**`);
 
       return interaction.reply({
-        content: `🧽 Permissão removida: ${parts || "ok"}.`,
+        content: `🧽 Permissão removida: ${parts.join(" e ") || "ok"}.`,
         ephemeral: true,
       });
     }
