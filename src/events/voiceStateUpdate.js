@@ -1,20 +1,24 @@
 module.exports = {
   name: "voiceStateUpdate",
-  async execute(oldState, newState, client, config) {
-    // só interessa quando alguém saiu/trocou
-    if (!oldState.channelId || oldState.channelId === newState.channelId) return;
+  async execute(oldState, newState, client) {
+    // Se alguém saiu de uma call
+    if (oldState.channelId && !newState.channelId) {
+      const channel = oldState.channel;
+      if (!channel) return;
 
-    const leftChannel = oldState.channel;
-    if (!leftChannel) return;
-
-    // Se era call temporária registrada e ficou vazia, deleta
-    for (const [ownerId, info] of client.tempCalls.entries()) {
-      if (info.channelId === leftChannel.id && info.deleteIfEmpty) {
-        if (leftChannel.members.size === 0) {
-          try { await leftChannel.delete("Call temporária vazia"); } catch {}
-          client.tempCalls.delete(ownerId);
+      // Verifica se é call temporária
+      for (const [ownerId, info] of client.tempCalls.entries()) {
+        if (info.channelId === channel.id) {
+          // Se ficou vazia
+          const humans = channel.members.filter(m => !m.user.bot);
+          if (humans.size === 0) {
+            try {
+              await channel.delete("Call temporária vazia");
+            } catch {}
+            client.tempCalls.delete(ownerId);
+          }
+          break;
         }
-        break;
       }
     }
   }
