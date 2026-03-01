@@ -85,9 +85,7 @@ module.exports = {
 
       client.tempCalls.set(ownerId, {
         channelId: ch.id,
-        guildId: guild.id,
-        expiresAt: Date.now() + minutos * 60_000,
-        deleteIfEmpty: config.call.deleteIfEmpty
+        guildId: guild.id
       });
 
       return interaction.reply({
