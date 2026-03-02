@@ -8,6 +8,7 @@ module.exports = {
     if (message.author.bot) return;
 
     await xp.addMessage(message.author.id);
+    await xp.addXp(message.author.id, config.xp.messagePerMsg ?? 1);
 
     const now = Date.now();
     const ok = await xp.canGetMsgXp(message.author.id, now, config.xp.msgCooldownSec);
