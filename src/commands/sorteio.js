@@ -49,7 +49,7 @@ module.exports = {
       }
 
       const endsAt = Date.now() + ms;
-      const id = giveaway.createGiveaway({
+      const id = await giveaway.createGiveaway({
         guildId: interaction.guildId,
         channelId: interaction.channelId,
         prize,
