@@ -58,13 +58,39 @@ async function getDueGiveaways(nowMs) {
   return rows;
 }
 
-function pickWinners(userIds, winnersCount) {
-  const pool = [...userIds];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = crypto.randomInt(0, i + 1);
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+function pickWinners(entries, winnersCount) {
+  // entries pode ser:
+  // - array de strings/ids: ["123", "456"]
+  // - array de objetos do banco: [{ user_id: "123" }, { user_id: "456" }]
+  // - Set de ids
+
+  const ids = (() => {
+    if (!entries) return [];
+    if (entries instanceof Set) return [...entries];
+    if (!Array.isArray(entries)) return [];
+
+    // array de objetos?
+    if (entries.length && typeof entries[0] === "object" && entries[0] !== null) {
+      return entries
+        .map(e => e.user_id ?? e.userId ?? e.id) // tenta campos comuns
+        .filter(Boolean)
+        .map(String);
+    }
+
+    // array simples de ids
+    return entries.filter(Boolean).map(String);
+  })();
+
+  const unique = [...new Set(ids)];
+  const n = Math.max(0, Math.min(Number(winnersCount) || 1, unique.length));
+
+  // shuffle simples
+  for (let i = unique.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [unique[i], unique[j]] = [unique[j], unique[i]];
   }
-  return pool.slice(0, Math.min(winnersCount, pool.length));
+
+  return unique.slice(0, n);
 }
 
 module.exports = {
