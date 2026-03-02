@@ -2,6 +2,7 @@ const {
   SlashCommandBuilder,
   ChannelType,
   PermissionsBitField,
+  MessageFlags,
 } = require("discord.js");
 
 function parseUserIds(raw) {
@@ -106,12 +107,12 @@ module.exports = {
 
   async execute(interaction, client, config) {
     if (!interaction.guild) {
-      return interaction.reply({ content: "Use isso dentro de um servidor.", ephemeral: true });
+      return interaction.reply({ content: "Use isso dentro de um servidor.", flags: MessageFlags.Ephemeral });
     }
 
     // Guild lock (se você usa isso)
     if (interaction.guildId !== config.guildId) {
-      return interaction.reply({ content: "Este bot funciona apenas no servidor configurado.", ephemeral: true });
+      return interaction.reply({ content: "Este bot funciona apenas no servidor configurado.", flags: MessageFlags.Ephemeral });
     }
 
     const sub = interaction.options.getSubcommand();
@@ -120,20 +121,20 @@ module.exports = {
     if (!categoryId) {
       return interaction.reply({
         content: "TEMP_VOICE_CATEGORY_ID não está configurado.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     // Permissões do BOT
     const me = interaction.guild.members.me;
     if (!me) {
-      return interaction.reply({ content: "Não consegui obter minhas permissões.", ephemeral: true });
+      return interaction.reply({ content: "Não consegui obter minhas permissões.", flags: MessageFlags.Ephemeral });
     }
 
     if (!me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
       return interaction.reply({
         content: "Eu preciso de **Gerenciar Canais** para criar/deletar call.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -143,7 +144,7 @@ module.exports = {
       if (existing) {
         return interaction.reply({
           content: `Você já tem uma call ativa: **${existing.name}**.`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -154,7 +155,7 @@ module.exports = {
       if (!name) {
         return interaction.reply({
           content: "Todas as instâncias estão ocupadas no momento (limite de 10).",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
