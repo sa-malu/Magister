@@ -1,6 +1,6 @@
 const giveaway = require("../services/giveawayService");
 const rolePanel = require("../services/rolePanelService");
-const { PermissionsBitField } = require("discord.js");
+const { PermissionsBitField, MessageFlags } = require("discord.js");
 
 module.exports = {
   name: "interactionCreate",
@@ -10,7 +10,7 @@ module.exports = {
       if (interaction.isRepliable()) {
         return interaction.reply({
           content: "Este bot funciona apenas no servidor configurado.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
       return;
@@ -28,14 +28,14 @@ module.exports = {
         if (!gw || gw.ended) {
           return interaction.reply({
             content: "Esse sorteio já acabou (ou não existe).",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
 
         if (interaction.user.bot) {
           return interaction.reply({
             content: "Bots não podem participar.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
 
@@ -44,7 +44,7 @@ module.exports = {
 
         return interaction.reply({
           content: `✅ Você entrou no sorteio! (participantes: ${count})`,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -55,7 +55,7 @@ module.exports = {
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId.startsWith("rolepanel:")) {
         if (interaction.user.bot) {
-          return interaction.reply({ content: "Bots não podem usar isso.", ephemeral: true });
+          return interaction.reply({ content: "Bots não podem usar isso.", flags: MessageFlags.Ephemeral });
         }
 
         // Bot precisa ManageRoles
@@ -63,7 +63,7 @@ module.exports = {
         if (!me || !me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
           return interaction.reply({
             content: "Eu não tenho permissão **Gerenciar Cargos**.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
 
@@ -73,7 +73,7 @@ module.exports = {
         if (!panel) {
           return interaction.reply({
             content: "Painel não encontrado.",
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
 
@@ -90,7 +90,7 @@ module.exports = {
 
         return interaction.reply({
           content: "✅ Seus cargos foram atualizados.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -109,9 +109,9 @@ module.exports = {
       console.error(err);
       const msg = "Deu erro ao executar esse comando.";
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: msg, ephemeral: true });
+        await interaction.followUp({ content: msg, flags: MessageFlags.Ephemeral });
       } else {
-        await interaction.reply({ content: msg, ephemeral: true });
+        await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
       }
     }
   },
