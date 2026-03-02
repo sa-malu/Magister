@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   PermissionsBitField,
+  MessageFlags,
 } = require("discord.js");
 
 const rolePanel = require("../services/rolePanelService");
@@ -75,7 +76,7 @@ module.exports = {
     ) {
       return interaction.reply({
         content: "Você precisa de **Gerenciar Cargos**.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -85,7 +86,7 @@ module.exports = {
       const rows = rolePanel.listPanels(interaction.guildId);
 
       if (!rows.length) {
-        return interaction.reply({ content: "Não há painéis cadastrados.", ephemeral: true });
+        return interaction.reply({ content: "Não há painéis cadastrados.", flags: MessageFlags.Ephemeral});
       }
 
       const lines = rows.slice(0, 10).map((p, i) => {
@@ -94,14 +95,14 @@ module.exports = {
 
       return interaction.reply({
         content: `📋 **Painéis (${rows.length}/10):**\n${lines.join("\n")}`,
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
     if (sub === "deletar") {
       const id = interaction.options.getString("id");
       const panel = rolePanel.getPanel(id);
-      if (!panel) return interaction.reply({ content: "Painel não encontrado.", ephemeral: true });
+      if (!panel) return interaction.reply({ content: "Painel não encontrado.", flags: MessageFlags.Ephemeral });
 
       // tenta remover menu da mensagem
       try {
@@ -114,7 +115,7 @@ module.exports = {
 
       rolePanel.deletePanel(id);
 
-      return interaction.reply({ content: `🗑️ Painel \`${id}\` deletado.`, ephemeral: true });
+      return interaction.reply({ content: `🗑️ Painel \`${id}\` deletado.`, flags: MessageFlags.Ephemeral });
     }
 
     // criar
@@ -123,13 +124,13 @@ module.exports = {
     if (count >= 10) {
       return interaction.reply({
         content: "Limite atingido: **máximo de 10 painéis**. Use `/rolespainel listar` e `/rolespainel deletar`.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
     // bot precisa manage roles
     if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-      return interaction.reply({ content: "Eu não tenho **Gerenciar Cargos**.", ephemeral: true });
+      return interaction.reply({ content: "Eu não tenho **Gerenciar Cargos**.", flags: MessageFlags.Ephemeral });
     }
 
     const title = interaction.options.getString("titulo");
@@ -147,7 +148,7 @@ module.exports = {
     if (!uniqueRoleIds.length) {
       return interaction.reply({
         content: "Você precisa informar pelo menos **1 cargo** (ex: `cargo1`).",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -162,7 +163,7 @@ module.exports = {
         content:
           "Alguns cargos estão acima (ou no mesmo nível) do bot. Coloque o cargo do Magister acima desses cargos.\n" +
           `Problema em: ${invalid.map((r) => `**${r?.name ?? "?"}**`).join(", ")}`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -213,6 +214,6 @@ module.exports = {
 
     await tempMsg.edit({ components: [new ActionRowBuilder().addComponents(menu)] });
 
-    await interaction.followUp({ content: `✅ Painel criado! ID: \`${panelId}\``, ephemeral: true });
+    await interaction.followUp({ content: `✅ Painel criado! ID: \`${panelId}\``, flags: MessageFlags.Ephemeral });
   },
 };
