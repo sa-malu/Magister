@@ -69,7 +69,7 @@ module.exports = {
           .setStyle(ButtonStyle.Primary)
       );
 
-      await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+      await interaction.reply({ embeds: [embed], components: [row]});
       const msg = await interaction.fetchReply();
       giveaway.setMessageId(id, msg.id);
 
