@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +18,7 @@ module.exports = {
     if (!user.banner) {
       return interaction.reply({
         content: "Essa pessoa não tem banner configurado.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
