@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
 const giveaway = require("../services/giveawayService");
 
 function parseDurationToMs(str) {
@@ -45,7 +45,7 @@ module.exports = {
 
       const ms = parseDurationToMs(dur);
       if (!ms || ms < 60_000) {
-        return interaction.reply({ content: "Duração inválida. Use `10m`, `2h` ou `1d` (mínimo 1m).", ephemeral: true });
+        return interaction.reply({ content: "Duração inválida. Use `10m`, `2h` ou `1d` (mínimo 1m).", flags: MessageFlags.Ephemeral });
       }
 
       const endsAt = Date.now() + ms;
@@ -77,12 +77,12 @@ module.exports = {
 
     const id = interaction.options.getString("id");
     const gw = giveaway.getGiveaway(id);
-    if (!gw) return interaction.reply({ content: "Sorteio não encontrado.", ephemeral: true });
+    if (!gw) return interaction.reply({ content: "Sorteio não encontrado.", flags: MessageFlags.Ephemeral });
 
     const entries = giveaway.listEntries(id);
 
     if (sub === "encerrar") {
-      if (gw.ended) return interaction.reply({ content: "Esse sorteio já está encerrado.", ephemeral: true });
+      if (gw.ended) return interaction.reply({ content: "Esse sorteio já está encerrado.", flags: MessageFlags.Ephemeral });
 
       const winnersIds = giveaway.pickWinners(entries, gw.winners);
       giveaway.markEnded(id);
@@ -97,8 +97,8 @@ module.exports = {
     }
 
     if (sub === "reroll") {
-      if (!gw.ended) return interaction.reply({ content: "Você só pode usar reroll depois de encerrar o sorteio.", ephemeral: true });
-      if (!entries.length) return interaction.reply({ content: "Não há participantes pra reroll.", ephemeral: true });
+      if (!gw.ended) return interaction.reply({ content: "Você só pode usar reroll depois de encerrar o sorteio.", flags: MessageFlags.Ephemeral });
+      if (!entries.length) return interaction.reply({ content: "Não há participantes pra reroll.", flags: MessageFlags.Ephemeral });
 
       const winnersIds = giveaway.pickWinners(entries, gw.winners);
       const mentions = winnersIds.map(uid => `<@${uid}>`).join(", ");
