@@ -21,7 +21,9 @@ async function registerCommands(arg1, arg2, arg3, arg4) {
 
   // Enviar JSON puro (evita payload embaralhado)
   const body = commands.map((c) => c.data.toJSON());
-
+  const body = commands.map((c) => c.data.toJSON());
+  
+  console.log("[COMMANDS ORDER]", body.map((c, i) => `${i}:${c.name}`).join(" | "));
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
 
   console.log(`[COMMANDS] Registrados ${body.length} comandos na guild ${guildId}.`);
