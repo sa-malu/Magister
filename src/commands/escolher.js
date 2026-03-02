@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags } = require("discord.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,7 +11,7 @@ module.exports = {
     const parts = raw.split("|").map(s => s.trim()).filter(Boolean);
 
     if (parts.length < 2) {
-      return interaction.reply({ content: "Coloque pelo menos 2 opções separadas por `|`.", ephemeral: true });
+      return interaction.reply({ content: "Coloque pelo menos 2 opções separadas por `|`.", flags: MessageFlags.Ephemeral });
     }
 
     const pick = parts[Math.floor(Math.random() * parts.length)];
