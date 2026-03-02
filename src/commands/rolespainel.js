@@ -18,7 +18,10 @@ const numberEmojis = [
 function addRoleBatch(sub, count) {
   for (let i = 1; i <= count; i++) {
     sub.addRoleOption((o) =>
-      o.setName(`cargo${i}`).setDescription(`Cargo ${i}`).setRequired(i === 1)
+      o
+        .setName(`cargo${i}`)
+        .setDescription(`Cargo ${i}`)
+        .setRequired(false) // ✅ TODOS OPCIONAIS (evita erro 50035)
     );
   }
   return sub;
@@ -33,18 +36,21 @@ module.exports = {
         sub
           .setName("criar")
           .setDescription("Cria um painel de cargos")
+          // required primeiro ✅
           .addStringOption((o) =>
             o.setName("titulo").setDescription("Título do painel").setRequired(true)
           )
-          .addStringOption((o) =>
-            o.setName("descricao").setDescription("Descrição").setRequired(false)
-          )
           .addIntegerOption((o) =>
-            o.setName("max_selecao")
+            o
+              .setName("max_selecao")
               .setDescription("Máximo de cargos selecionáveis")
               .setRequired(true)
               .setMinValue(1)
               .setMaxValue(25)
+          )
+          // opcionais depois ✅
+          .addStringOption((o) =>
+            o.setName("descricao").setDescription("Descrição").setRequired(false)
           ),
         10
       )
@@ -67,7 +73,10 @@ module.exports = {
       !interaction.member.permissions.has(PermissionsBitField.Flags.ManageRoles) &&
       !interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)
     ) {
-      return interaction.reply({ content: "Você precisa de **Gerenciar Cargos**.", ephemeral: true });
+      return interaction.reply({
+        content: "Você precisa de **Gerenciar Cargos**.",
+        ephemeral: true
+      });
     }
 
     const sub = interaction.options.getSubcommand();
@@ -134,6 +143,14 @@ module.exports = {
     }
     const uniqueRoleIds = [...new Set(roleIds)].slice(0, 25);
 
+    // ✅ valida: precisa ter ao menos 1 cargo
+    if (!uniqueRoleIds.length) {
+      return interaction.reply({
+        content: "Você precisa informar pelo menos **1 cargo** (ex: `cargo1`).",
+        ephemeral: true,
+      });
+    }
+
     // valida hierarquia
     const botTop = interaction.guild.members.me.roles.highest.position;
     const invalid = uniqueRoleIds
@@ -160,7 +177,9 @@ module.exports = {
       };
     });
 
-    const placeholder = maxSelect === 1 ? "Selecione 1 cargo..." : `Selecione até ${maxSelect} cargos...`;
+    const placeholder = maxSelect === 1
+      ? "Selecione 1 cargo..."
+      : `Selecione até ${maxSelect} cargos...`;
 
     const tempMsg = await interaction.reply({
       embeds: [embed],
