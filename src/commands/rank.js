@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const xp = require("../services/xpService");
 
 module.exports = {
@@ -44,6 +44,6 @@ module.exports = {
       embed.setDescription(lines.join("\n") || "Sem dados ainda.");
     }
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 };
