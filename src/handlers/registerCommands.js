@@ -1,6 +1,6 @@
 const { REST, Routes } = require("discord.js");
 
-module.exports = async function registerCommands(client, config) {
+async function registerCommands(client, config) {
   const rest = new REST({ version: "10" }).setToken(config.token);
 
   const commandsJson = [...client.commands.values()].map(cmd => cmd.data.toJSON());
@@ -11,4 +11,6 @@ module.exports = async function registerCommands(client, config) {
   );
 
   console.log(`[COMMANDS] Registrados ${commandsJson.length} comandos.`);
-};
+}
+
+module.exports = { registerCommands };
