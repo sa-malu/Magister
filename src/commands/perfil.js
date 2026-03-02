@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const xp = require("../services/xpService");
 
 function fmtTime(totalSeconds) {
@@ -27,6 +27,6 @@ module.exports = {
         { name: "💬 Mensagens", value: String(row.message_count), inline: true }
       );
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 };
