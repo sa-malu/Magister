@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, PermissionsBitField } = require("discord.js");
+const { SlashCommandBuilder, ChannelType, PermissionsBitField, MessageFlags } = require("discord.js");
 
 function getUserVoiceChannel(interaction) {
   const ch = interaction.member.voice?.channel;
@@ -36,11 +36,11 @@ module.exports = {
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     const voice = getUserVoiceChannel(interaction);
-    if (!voice) return interaction.reply({ content: "Você precisa estar em uma call de voz.", ephemeral: true });
+    if (!voice) return interaction.reply({ content: "Você precisa estar em uma call de voz.", flags: MessageFlags.Ephemeral });
 
     const humans = [...voice.members.values()].filter(m => !m.user.bot);
     if (humans.length < 2) {
-      return interaction.reply({ content: "Precisa ter pelo menos **2 humanos** na call.", ephemeral: true });
+      return interaction.reply({ content: "Precisa ter pelo menos **2 humanos** na call.", flags: MessageFlags.Ephemeral });
     }
 
     if (sub === "sortear") {
@@ -70,10 +70,10 @@ module.exports = {
 
     // mover/puxar/expulsar precisam Move Members
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.MoveMembers)) {
-      return interaction.reply({ content: "Você precisa de permissão **Mover Membros**.", ephemeral: true });
+      return interaction.reply({ content: "Você precisa de permissão **Mover Membros**.", flags: MessageFlags.Ephemeral });
     }
     if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.MoveMembers)) {
-      return interaction.reply({ content: "Eu não tenho permissão **Mover Membros**.", ephemeral: true });
+      return interaction.reply({ content: "Eu não tenho permissão **Mover Membros**.", flags: MessageFlags.Ephemeral });
     }
 
     if (sub === "mover_todos") {
@@ -89,8 +89,8 @@ module.exports = {
     if (sub === "puxar") {
       const user = interaction.options.getUser("usuario");
       const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-      if (!member || member.user.bot) return interaction.reply({ content: "Usuário inválido.", ephemeral: true });
-      if (!member.voice?.channel) return interaction.reply({ content: "Essa pessoa não está em call.", ephemeral: true });
+      if (!member || member.user.bot) return interaction.reply({ content: "Usuário inválido.", flags: MessageFlags.Ephemeral });
+      if (!member.voice?.channel) return interaction.reply({ content: "Essa pessoa não está em call.", flags: MessageFlags.Ephemeral });
 
       await member.voice.setChannel(voice).catch(() => {});
       return interaction.reply({ content: `✅ Puxei ${member} para **${voice.name}**.` });
@@ -99,8 +99,8 @@ module.exports = {
     if (sub === "expulsar") {
       const user = interaction.options.getUser("usuario");
       const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-      if (!member || member.user.bot) return interaction.reply({ content: "Usuário inválido.", ephemeral: true });
-      if (!member.voice?.channel) return interaction.reply({ content: "Essa pessoa não está em call.", ephemeral: true });
+      if (!member || member.user.bot) return interaction.reply({ content: "Usuário inválido.", flags: MessageFlags.Ephemeral });
+      if (!member.voice?.channel) return interaction.reply({ content: "Essa pessoa não está em call.", flags: MessageFlags.Ephemeral });
 
       await member.voice.setChannel(null).catch(() => {});
       return interaction.reply({ content: `✅ Desconectei ${member} da call.` });
