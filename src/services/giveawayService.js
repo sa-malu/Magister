@@ -38,8 +38,11 @@ async function countEntries(id) {
   return rows[0]?.c ?? 0;
 }
 
-async function listEntries(id) {
-  const { rows } = await query(`SELECT user_id FROM giveaway_entries WHERE giveaway_id = $1`, [id]);
+async function listEntries(giveawayId) {
+  const { rows } = await pool.query(
+    "SELECT user_id FROM giveaway_entries WHERE giveaway_id = $1",
+    [giveawayId]
+  );
   return rows.map(r => r.user_id);
 }
 
