@@ -28,6 +28,9 @@ client.commands = new Collection();
 client.tempCalls = makeCallStore();
 
 async function bootstrap() {
+  client.on("error", (e) => console.error("[CLIENT ERROR]", e));
+  process.on("unhandledRejection", (e) => console.error("[UNHANDLED REJECTION]", e));
+  process.on("uncaughtException", (e) => console.error("[UNCAUGHT EXCEPTION]", e));
   // 1) Banco primeiro (antes de qualquer coisa)
   await migrate();
 
@@ -36,7 +39,7 @@ async function bootstrap() {
   for (const cmd of commands) client.commands.set(cmd.data.name, cmd);
 
   // 3) Ready + registrar slash commands
-  client.once("ready", async () => {
+  client.once("clientReady", async () => {
     await readyEvent.execute(client);
 
     await registerCommands({
