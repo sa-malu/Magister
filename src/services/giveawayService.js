@@ -1,6 +1,6 @@
 const { query } = require("../db/postgres");
 const crypto = require("crypto");
-const { pool } = require("../db/index.js");
+const { pool } = require("../db");
 
 function makeId() {
   return crypto.randomBytes(8).toString("hex");
